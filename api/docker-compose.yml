@@ -1,0 +1,19 @@
+version: "3.9"
+ 
+services:
+  postgres:
+    image: postgres:16
+    container_name: controle-acces-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: controle_acces
+      POSTGRES_PASSWORD: dev_password_local
+      POSTGRES_DB: controle_acces
+    ports:
+      - "5433:5432"
+    volumes:
+      - controle-acces-db-data:/var/lib/postgresql/data
+ 
+volumes:
+  controle-acces-db-data:
+ 

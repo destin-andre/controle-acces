@@ -1,0 +1,33 @@
+## ===== .NET / C# =====
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+## ===== Python (simulateur RFID) =====
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+## ===== Secrets / configuration sensible =====
+appsettings.Development.json
+appsettings.Production.json
+*.env
+.env
+secrets.json
+
+## ===== Terraform =====
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+## ===== Ansible =====
+*.retry
+
+## ===== Système / éditeur =====
+.DS_Store
+Thumbs.db
+*.log

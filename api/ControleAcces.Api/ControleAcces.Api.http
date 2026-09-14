@@ -1,0 +1,6 @@
+@ControleAcces.Api_HostAddress = http://localhost:5063
+
+GET {{ControleAcces.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
