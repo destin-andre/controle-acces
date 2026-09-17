@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace ControleAcces.Api.Models
 {
@@ -28,5 +29,9 @@ namespace ControleAcces.Api.Models
         // Indique si l'utilisateur est encore actif (true) ou a quitté l'entreprise (false).
         // Par défaut, un nouvel utilisateur est considéré comme actif.
         public bool EnActivite { get; set; } = true;
+
+        // Un utilisateur peut avoir au maximum une empreinte.
+        [JsonIgnore]
+        public Empreinte? Empreinte { get; set; }
     }
 }

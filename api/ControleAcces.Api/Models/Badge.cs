@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 namespace ControleAcces.Api.Models
 {
     // Cette classe représente un badge dans le système.
@@ -25,6 +26,7 @@ namespace ControleAcces.Api.Models
         public int IdUtilisateur { get; set; }
 
         // Navigation property vers l'utilisateur associé au badge.
+        [ForeignKey(nameof(IdUtilisateur))]
         public Utilisateur? Utilisateur { get; set; }
     }
 }

@@ -43,14 +43,100 @@ namespace ControleAcces.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int?>("UtilisateurIdUtilisateur")
-                        .HasColumnType("integer");
-
                     b.HasKey("IdBadge");
 
-                    b.HasIndex("UtilisateurIdUtilisateur");
+                    b.HasIndex("IdUtilisateur");
 
                     b.ToTable("Badges");
+                });
+
+            modelBuilder.Entity("ControleAcces.Api.Models.DroitAcces", b =>
+                {
+                    b.Property<int>("IdDroit")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdDroit"));
+
+                    b.Property<DateTime>("DateDebut")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DateFin")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("IdBadge")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("IdZone")
+                        .HasColumnType("integer");
+
+                    b.HasKey("IdDroit");
+
+                    b.HasIndex("IdBadge");
+
+                    b.HasIndex("IdZone");
+
+                    b.ToTable("DroitsAcces");
+                });
+
+            modelBuilder.Entity("ControleAcces.Api.Models.Empreinte", b =>
+                {
+                    b.Property<int>("IdEmpreinte")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdEmpreinte"));
+
+                    b.Property<DateTime>("DateEnrolement")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("IdUtilisateur")
+                        .HasColumnType("integer");
+
+                    b.Property<byte[]>("TemplatesBiometrique")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.HasKey("IdEmpreinte");
+
+                    b.HasIndex("IdUtilisateur")
+                        .IsUnique();
+
+                    b.ToTable("Empreintes");
+                });
+
+            modelBuilder.Entity("ControleAcces.Api.Models.LogAcces", b =>
+                {
+                    b.Property<int>("IdLog")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdLog"));
+
+                    b.Property<DateTime>("Horodatage")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("IdBadge")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("IdZone")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Methode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Resultat")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("IdLog");
+
+                    b.HasIndex("IdBadge");
+
+                    b.HasIndex("IdZone");
+
+                    b.ToTable("LogAcces");
                 });
 
             modelBuilder.Entity("ControleAcces.Api.Models.Utilisateur", b =>
@@ -85,13 +171,90 @@ namespace ControleAcces.Api.Migrations
                     b.ToTable("Utilisateurs");
                 });
 
+            modelBuilder.Entity("ControleAcces.Api.Models.Zone", b =>
+                {
+                    b.Property<int>("IdZone")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdZone"));
+
+                    b.Property<string>("NiveauSecurite")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NomZone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("IdZone");
+
+                    b.ToTable("Zones");
+                });
+
             modelBuilder.Entity("ControleAcces.Api.Models.Badge", b =>
                 {
                     b.HasOne("ControleAcces.Api.Models.Utilisateur", "Utilisateur")
                         .WithMany()
-                        .HasForeignKey("UtilisateurIdUtilisateur");
+                        .HasForeignKey("IdUtilisateur")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Utilisateur");
+                });
+
+            modelBuilder.Entity("ControleAcces.Api.Models.DroitAcces", b =>
+                {
+                    b.HasOne("ControleAcces.Api.Models.Badge", "Badge")
+                        .WithMany()
+                        .HasForeignKey("IdBadge")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ControleAcces.Api.Models.Zone", "Zone")
+                        .WithMany()
+                        .HasForeignKey("IdZone")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Badge");
+
+                    b.Navigation("Zone");
+                });
+
+            modelBuilder.Entity("ControleAcces.Api.Models.Empreinte", b =>
+                {
+                    b.HasOne("ControleAcces.Api.Models.Utilisateur", "Utilisateur")
+                        .WithOne("Empreinte")
+                        .HasForeignKey("ControleAcces.Api.Models.Empreinte", "IdUtilisateur")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Utilisateur");
+                });
+
+            modelBuilder.Entity("ControleAcces.Api.Models.LogAcces", b =>
+                {
+                    b.HasOne("ControleAcces.Api.Models.Badge", "Badge")
+                        .WithMany()
+                        .HasForeignKey("IdBadge")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ControleAcces.Api.Models.Zone", "Zone")
+                        .WithMany()
+                        .HasForeignKey("IdZone")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Badge");
+
+                    b.Navigation("Zone");
+                });
+
+            modelBuilder.Entity("ControleAcces.Api.Models.Utilisateur", b =>
+                {
+                    b.Navigation("Empreinte");
                 });
 #pragma warning restore 612, 618
         }

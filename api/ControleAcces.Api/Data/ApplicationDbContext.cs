@@ -19,5 +19,17 @@ namespace ControleAcces.Api.Data
         // On ajoutera une ligne similaire pour chaque nouvelle entité (Badges, Zones, etc.).
         public DbSet<Utilisateur> Utilisateurs { get; set; }
         public DbSet<Badge> Badges { get; set; }
+        public DbSet<Zone> Zones { get; set; }
+        public DbSet<Empreinte> Empreintes { get; set; }
+        public DbSet<DroitAcces> DroitsAcces { get; set; }
+        public DbSet<LogAcces> LogAcces { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Empreinte>()
+                .HasOne(empreinte => empreinte.Utilisateur)
+                .WithOne(utilisateur => utilisateur.Empreinte)
+                .HasForeignKey<Empreinte>(empreinte => empreinte.IdUtilisateur);
+        }
     }
 }

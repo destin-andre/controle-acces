@@ -27,7 +27,14 @@ builder.Services.AddScoped<IUtilisateurRepository, UtilisateurRepository>();
 builder.Services.AddScoped<IUtilisateurService, UtilisateurService>();
 builder.Services.AddScoped<IBadgeRepository, BadgeRepository>();
 builder.Services.AddScoped<IBadgeService, BadgeService>();
-
+builder.Services.AddScoped<IZoneRepository, ZoneRepository>();
+builder.Services.AddScoped<IZoneService, ZoneService>();
+builder.Services.AddScoped<IEmpreinteRepository, EmpreinteRepository>();
+builder.Services.AddScoped<IEmpreinteService, EmpreinteService>();
+builder.Services.AddScoped<IDroitAccesRepository, DroitAccesRepository>();
+builder.Services.AddScoped<IDroitAccesService, DroitAccesService>();
+builder.Services.AddScoped<ILogAccesRepository, LogAccesRepository>();
+builder.Services.AddScoped<ILogAccesService, LogAccesService>();
 // Active la génération automatique de la documentation technique de l'API (format OpenAPI).
 builder.Services.AddOpenApi();
 
