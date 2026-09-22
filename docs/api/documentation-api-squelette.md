@@ -1,0 +1,67 @@
+# Mise en place du squelette de l'API
+
+## Introduction
+
+Ce document retrace en détail la mise en place de la première version fonctionnelle de l'API du système de contrôle d'accès. Il est rédigé de manière à ce qu'une personne n'ayant jamais touché au projet puisse reproduire l'ensemble des étapes de façon autonome, comprendre pourquoi chaque choix a été fait, et savoir comment résoudre les difficultés rencontrées au passage. L'objectif de cette phase était de construire une architecture en couches propre, connectée à une vraie base de données PostgreSQL, avec un premier ensemble complet d'endpoints permettant de créer, lire, modifier et supprimer des utilisateurs, puis des badges.
+
+## Les outils nécessaires avant de commencer
+
+Avant toute chose, deux outils doivent être installés sur la machine de développement. Le premier est le SDK .NET, qui fournit le compilateur et les outils en ligne de commande nécessaires pour créer et exécuter un projet C#. On vérifie sa présence en tapant `dotnet --version` dans un terminal, ce qui doit afficher un numéro de version. Le second est Docker Desktop, qui permet de faire tourner des services comme une base de données dans des conteneurs isolés, sans avoir à les installer directement sur la machine. Ces deux outils une fois confirmés opérationnels, la création du projet peut commencer.
+
+## Création du projet et structure en couches
+
+Le projet API a été généré avec la commande `dotnet new webapi -n ControleAcces.Api --use-controllers`, exécutée depuis le dossier `api` du dépôt. Cette commande crée un squelette de projet Web API en C#, dans sa variante utilisant des contrôleurs classiques plutôt que le style dit minimal, ce dernier étant moins adapté à une architecture en couches bien séparée. Le projet généré contient par défaut un exemple de contrôleur météo fictif, qui a été supprimé une fois le fonctionnement de base vérifié via une requête de test.
+
+L'architecture retenue pour ce projet repose sur quatre couches distinctes, matérialisées par quatre dossiers à la racine du projet. Le dossier `Controllers` contient les classes qui reçoivent les requêtes HTTP entrantes et renvoient les réponses correspondantes, sans jamais contenir de logique métier ni accéder directement à la base de données. Le dossier `Services` porte la logique métier proprement dite, c'est-à-dire les règles et vérifications propres au fonctionnement du système, comme le refus de créer un utilisateur sans adresse email. Le dossier `Repositories` est le seul autorisé à dialoguer avec la base de données, à travers Entity Framework Core. Enfin, le dossier `Models` contient les classes qui représentent les données manipulées par l'application, comme les classes `Utilisateur` et `Badge`.
+
+Cette séparation stricte des responsabilités répond à un principe fondamental de conception logicielle appelé séparation des préoccupations. Chaque couche ne connaît que celle immédiatement en dessous d'elle : un contrôleur appelle un service, un service appelle un repository, un repository appelle la base de données. Cette organisation facilite grandement la maintenance et les tests, puisqu'il devient possible de modifier une couche sans avoir à toucher aux autres, à condition de respecter le contrat défini par les interfaces.
+
+## Mise en place de la base de données avec Docker
+
+Plutôt que d'installer PostgreSQL directement sur la machine, ce qui aurait pu entrer en conflit avec d'autres logiciels ou complexifier le nettoyage ultérieur, la base de données a été mise en place à travers un conteneur Docker, décrit dans un fichier `docker-compose.yml` placé à la racine du dossier `api`. Ce fichier définit un service PostgreSQL en version 16, avec un nom d'utilisateur, un mot de passe et un nom de base préconfigurés, ainsi qu'un volume Docker permettant de conserver les données même si le conteneur est arrêté ou recréé.
+
+Le conteneur se démarre avec la commande `docker compose up -d`, exécutée depuis le dossier contenant le fichier, l'option `-d` signifiant que le conteneur tourne en arrière-plan sans bloquer le terminal. Sa bonne exécution se vérifie avec `docker ps`, qui doit faire apparaître le conteneur avec un statut actif.
+
+Un problème a été rencontré à ce stade : le port par défaut de PostgreSQL, à savoir 5432, était déjà occupé par une installation native de PostgreSQL présente sur la machine, probablement installée par un autre logiciel. Ce conflit provoquait une erreur d'authentification lors de la connexion depuis l'API, le service natif répondant à la place du conteneur Docker avec des identifiants différents. La solution retenue a consisté à faire écouter le conteneur sur un port différent, à savoir 5433, en modifiant la ligne de correspondance de ports dans le fichier `docker-compose.yml`, tout en conservant le port interne standard 5432 à l'intérieur du conteneur lui-même. La chaîne de connexion utilisée par l'API a été mise à jour en conséquence.
+
+## Connexion de l'API à la base de données
+
+La connexion entre l'API et PostgreSQL repose sur Entity Framework Core, un outil qui permet de manipuler une base de données relationnelle à travers des objets C#, sans avoir à écrire directement des requêtes SQL pour les opérations courantes. Trois paquets ont été ajoutés au projet à cet effet, à savoir le connecteur PostgreSQL, les outils de conception nécessaires à la génération de migrations, et les outils en ligne de commande correspondants.
+
+La chaîne de connexion, qui précise l'adresse du serveur, le port, le nom de la base et les identifiants d'accès, a été placée dans le fichier `appsettings.json`, sous une section dédiée. Une classe centrale nommée `ApplicationDbContext` a ensuite été créée dans le dossier `Data`. Cette classe hérite de `DbContext`, la classe fournie par Entity Framework Core, et déclare un ensemble nommé `Utilisateurs`, qui représente la table correspondante en base de données. Chaque nouvelle entité du projet, comme les badges, a nécessité l'ajout d'une déclaration similaire au fur et à mesure.
+
+Cette classe est ensuite enregistrée dans le fichier `Program.cs`, le point d'entrée de l'application, à travers la méthode `AddDbContext`. Cet enregistrement indique à .NET de fournir automatiquement une instance connectée de cette classe à toute autre classe qui en aurait besoin dans son constructeur, un mécanisme appelé injection de dépendances, central dans les applications .NET modernes.
+
+## Construction des quatre couches pour l'entité Utilisateur
+
+La première entité entièrement implémentée à travers les quatre couches est `Utilisateur`. Le modèle correspondant, placé dans `Models/Utilisateur.cs`, reprend fidèlement les colonnes définies dans le modèle conceptuel de données réalisé en amont, à savoir l'identifiant, le nom, le prénom, l'email, le poste, et le statut d'activité. Une précision technique a été nécessaire ici : Entity Framework Core reconnaît automatiquement une clé primaire seulement si elle porte le nom `Id` ou `NomDeClasseId`. Le modèle de données du projet utilisant plutôt la convention `IdNomDeClasse`, il a fallu ajouter explicitement une annotation `[Key]` au-dessus de la propriété concernée pour indiquer à Entity Framework qu'il s'agit bien de la clé primaire. Cette même précaution a ensuite été répétée pour chaque nouvelle entité du projet suivant la même convention de nommage.
+
+Le repository associé se compose de deux fichiers, une interface nommée `IUtilisateurRepository` et son implémentation `UtilisateurRepository`. L'interface définit les opérations disponibles, à savoir la récupération de tous les utilisateurs, la récupération d'un utilisateur par son identifiant, la création, la mise à jour et la suppression, sans préciser comment elles sont réalisées. L'implémentation concrète utilise l'`ApplicationDbContext`, reçu automatiquement par injection de dépendances, pour traduire ces opérations en véritables requêtes vers la base de données.
+
+Le service suit exactement la même logique de séparation entre interface et implémentation, mais porte en plus la logique métier. L'implémentation actuelle refuse par exemple la création d'un utilisateur dont l'adresse email serait vide, et vérifie l'existence d'un utilisateur avant d'autoriser sa modification.
+
+Le contrôleur, nommé `UtilisateursController`, expose enfin cinq routes correspondant aux opérations standard d'une interface REST : lecture de la liste complète, lecture d'un utilisateur précis, création, modification et suppression. Chaque route renvoie un code de statut HTTP approprié à la situation, qu'il s'agisse d'un succès, d'une création, d'une donnée manquante ou d'une ressource introuvable.
+
+## Génération de la table Utilisateurs
+
+Une fois les quatre couches en place, encore fallait-il que la table correspondante existe réellement dans PostgreSQL. Entity Framework Core propose pour cela un système de migrations, qui compare l'état attendu de la base de données, tel que décrit par les modèles et le `DbContext`, à son état réel, et génère automatiquement le code nécessaire pour combler l'écart.
+
+Une première migration a été générée avec la commande `dotnet ef migrations add InitialCreate`, exécutée depuis le dossier du projet API. Cette commande a créé un dossier `Migrations` contenant le code de création de la table `Utilisateurs`. Cette migration a ensuite été appliquée concrètement à la base de données avec la commande `dotnet ef database update`, qui exécute effectivement les instructions SQL correspondantes contre le conteneur PostgreSQL en cours d'exécution. La présence effective de la table a été vérifiée en se connectant directement à l'intérieur du conteneur avec la commande `docker exec -it controle-acces-db psql -U controle_acces -d controle_acces`, puis en listant les tables avec la commande interne `\dt` de PostgreSQL.
+
+Le test de création d'un utilisateur via Postman, avec une requête POST accompagnée d'un corps JSON, a renvoyé une réponse avec le code 201 et l'utilisateur créé, confirmant que la chaîne complète fonctionnait, de la réception de la requête jusqu'à l'enregistrement effectif en base de données.
+
+## Construction des quatre couches pour l'entité Badge
+
+Une fois Utilisateur validé de bout en bout, la même démarche a été reproduite pour l'entité Badge, avec une différence notable : il s'agissait ici de la première entité du projet comportant une relation vers une autre entité, puisque chaque badge appartient à un utilisateur précis.
+
+Le modèle Badge reprend les colonnes du modèle conceptuel de données, à savoir l'identifiant, l'identifiant unique du badge physique, la date d'attribution, et un indicateur d'activité, en plus d'une clé étrangère vers l'utilisateur propriétaire. Cette relation a été représentée à travers deux éléments distincts dans la classe : une propriété simple de type entier, IdUtilisateur, qui correspond à la valeur réellement stockée en base de données, et une propriété dite de navigation, de type Utilisateur, qui permet d'accéder directement aux informations complètes de l'utilisateur associé depuis un objet Badge, sans avoir à effectuer de requête séparée.
+
+Le repository, le service et le contrôleur de Badge suivent exactement la même structure que ceux d'Utilisateur, avec les noms d'entité adaptés en conséquence. La règle métier appliquée dans le service vérifie que l'identifiant unique du badge n'est pas vide avant d'autoriser sa création.
+
+Une nouvelle migration a été générée avec `dotnet ef migrations add AjoutBadge`, puis appliquée avec `dotnet ef database update`, ajoutant la table Badges à la base de données existante sans affecter la table Utilisateurs déjà en place.
+
+Le test de création d'un badge via Postman a révélé une difficulté technique liée à la gestion des dates par PostgreSQL. Ce dernier exige que toute valeur de date envoyée soit explicitement identifiée comme étant exprimée en temps universel coordonné, ce que .NET appelle une date de type UTC. Une date envoyée sans cette précision, comme un simple `2026-09-14T00:00:00`, est refusée avec une erreur de conversion. La solution a consisté à ajouter la lettre Z à la fin de chaque date envoyée dans le corps des requêtes JSON, cette lettre indiquant explicitement le fuseau horaire universel. Une fois cette correction appliquée, la création d'un badge, associé à l'utilisateur créé précédemment par son identifiant, a abouti avec succès, avec un code de réponse 201.
+
+## Points de vigilance pour la suite
+
+Plusieurs enseignements de cette phase méritent d'être gardés en tête pour la suite du projet. Le premier concerne la convention de nommage des identifiants du modèle de données, qui nécessite l'ajout systématique de l'annotation `[Key]` sur chaque nouvelle entité créée, tant que cette convention reste en place. Le second concerne la vigilance à avoir vis-à-vis des ports réseau déjà utilisés par d'autres logiciels sur la machine de développement. Le troisième concerne le format des dates envoyées à l'API, qui doivent systématiquement inclure l'indication du fuseau horaire universel pour être acceptées par PostgreSQL. Un dernier point, découvert plus tard au cours du développement des entités suivantes et documenté séparément, concerne la nécessité d'indiquer explicitement les clés étrangères des relations à travers l'attribut ForeignKey, la convention de nommage du projet n'étant pas reconnue automatiquement par Entity Framework Core sur ce point non plus.
