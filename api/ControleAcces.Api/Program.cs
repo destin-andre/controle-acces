@@ -35,6 +35,7 @@ builder.Services.AddScoped<IDroitAccesRepository, DroitAccesRepository>();
 builder.Services.AddScoped<IDroitAccesService, DroitAccesService>();
 builder.Services.AddScoped<ILogAccesRepository, LogAccesRepository>();
 builder.Services.AddScoped<ILogAccesService, LogAccesService>();
+builder.Services.AddScoped<IVerificationAccesService, VerificationAccesService>();
 // Active la génération automatique de la documentation technique de l'API (format OpenAPI).
 builder.Services.AddOpenApi();
 

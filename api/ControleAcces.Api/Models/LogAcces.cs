@@ -17,6 +17,7 @@ namespace ControleAcces.Api.Models
 
         public string Methode { get; set; } = string.Empty;
         public string Resultat { get; set; } = string.Empty;
+        public string? Raisons { get; set; }
 
         // Clé étrangère vers le badge utilisé pour l'accès.
         public int IdBadge { get; set; }
